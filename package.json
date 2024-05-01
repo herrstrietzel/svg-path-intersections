@@ -1,0 +1,20 @@
+{
+  "name": "svg-path-intersections",
+  "version": "1.0.1",
+  "description": "Standalone library to get all intersections between 2 SVG paths",
+  "main": "js/svg-path-intersections_standalone.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/herrstrietzel/svg-path-intersections.git"
+  },
+  "keywords": [
+    "svg",
+    "path-data",
+    "intersections"
+  ],
+  "author": "herrstrietzel",
+  "license": "MIT"
+}
