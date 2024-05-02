@@ -1,3 +1,20 @@
+
+(function (root, factory) {
+    if (typeof module !== 'undefined' && module.exports) {
+        // CommonJS (Node.js) environment
+        module.exports = factory();
+    } else if (typeof define === 'function' && define.amd) {
+        // AMD environment
+        define([], factory);
+    } else {
+        // Browser environment
+        root.pathIntersections = factory();
+    }
+})(this, function () {
+    var pathIntersections = {};
+
+
+
 /**
  * Find all intersections between two SVG paths.
  * Based on snap.svg intersection function
@@ -44,6 +61,328 @@ function checkPathIntersection(d1, d2) {
 
 //  intersection from parsed path data
 function findPathDataIntersections(pathData1, pathData2, stopAtFirst = false, sampleDist = 10) {
+
+    /**
+     * helpers
+     */
+    const findCommandIntersections = (data1, data2, xy, stopAtFirst = false) => {
+
+        let intersections = [];
+        let quit = false;
+        for (i = 0; i < data1.splits && !quit; i++) {
+
+            for (let j = 0; j < data2.splits && !quit; j++) {
+                let l1 = data1.dots[i],
+                    l1_1 = data1.dots[i + 1],
+
+                    l2 = data2.dots[j],
+                    l2_1 = data2.dots[j + 1],
+                    ci = Math.abs(l1_1.x - l1.x) < .01 ? 'y' : 'x',
+                    cj = Math.abs(l2_1.x - l2.x) < .01 ? 'y' : 'x';
+
+
+                let intersection = intersectLines(l1.x, l1.y, l1_1.x, l1_1.y, l2.x, l2.y, l2_1.x, l2_1.y)
+                if (intersection) {
+
+                    if (stopAtFirst && intersections) {
+                        quit = true
+                    }
+
+                    let intersection_key = intersection.x.toFixed(1) + '_' + intersection.y.toFixed(1);
+
+                    //if coorl1nates already found: skip
+                    if (xy[intersection_key]) {
+                        continue;
+                    }
+                    // save found intersection
+                    xy[intersection_key] = true;
+
+                    let t1 = l1.t + Math.abs((intersection[ci] - l1[ci]) / (l1_1[ci] - l1[ci])) * (l1_1.t - l1.t),
+                        t2 = l2.t + Math.abs((intersection[cj] - l2[cj]) / (l2_1[cj] - l2[cj])) * (l2_1.t - l2.t);
+
+                    if (t1 >= 0 && t1 <= 1 && t2 >= 0 && t2 <= 1) {
+
+                        intersections.push({
+                            x: intersection.x,
+                            y: intersection.y,
+                            t1: t1,
+                            t2: t2
+                        });
+                    }
+                }
+            }
+        }
+
+        return intersections;
+    }
+
+
+    const intersectLines = (x1, y1, x2, y2, x3, y3, x4, y4) => {
+
+        const isOnLine = (x1, y1, x2, y2, px, py, tolerance = 0.001) => {
+            var f = function (somex) { return (y2 - y1) / (x2 - x1) * (somex - x1) + y1; };
+            return Math.abs(f(px) - py) < tolerance
+                && px >= x1 && px <= x2;
+        }
+
+        if (
+            Math.max(x1, x2) < Math.min(x3, x4) ||
+            Math.min(x1, x2) > Math.max(x3, x4) ||
+            Math.max(y1, y2) < Math.min(y3, y4) ||
+            Math.min(y1, y2) > Math.max(y3, y4)
+        ) {
+            return;
+        }
+
+        var nx = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4),
+            ny = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4),
+            denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+
+        if (!denominator) {
+            return;
+        }
+
+        let px = (nx / denominator),
+            py = (ny / denominator);
+
+        let px2 = +px.toFixed(2),
+            py2 = +py.toFixed(2);
+
+        // if final point is on line
+        let isOnline = isOnLine(x3, y3, x4, y4, x2, y2, 0.1)
+
+        if (isOnline) {
+            return { x: x2, y: y2 };
+        }
+
+        if (
+            px2 < +Math.min(x1, x2).toFixed(2) ||
+            px2 > +Math.max(x1, x2).toFixed(2) ||
+            px2 < +Math.min(x3, x4).toFixed(2) ||
+            px2 > +Math.max(x3, x4).toFixed(2) ||
+            py2 < +Math.min(y1, y2).toFixed(2) ||
+            py2 > +Math.max(y1, y2).toFixed(2) ||
+            py2 < +Math.min(y3, y4).toFixed(2) ||
+            py2 > +Math.max(y3, y4).toFixed(2)
+        ) {
+            return;
+        }
+
+        return { x: px, y: py };
+    }
+
+    const isBBoxIntersect = (bbox1, bbox2) => {
+
+        let { x, y, right, bottom } = bbox1;
+        let [x2, y2, right2, bottom2] = [bbox2.x, bbox2.y, bbox2.right, bbox2.bottom];
+
+        let bboxIntersection =
+            x <= right2 &&
+                y <= bottom2 &&
+                bottom >= y2 &&
+                right >= x2 ?
+                true :
+                false;
+
+        return bboxIntersection;
+    }
+
+
+    /**
+     * get all segment's lengths
+     */
+
+    const getLength = (pts, t = 1, lg = 'wa6') => {
+
+        /**
+         * for intersections we can 
+         * use a sloppy n8 length approximation
+         */
+        const lgVals = {
+            wa6: [[0.4679139345726895, 0.2386191860831969], [0.3607615730481386, 0.6612093864662646], [0.17132449237916234, 0.932469514203152]],
+            wa12: [[0.24914704581340288, 0.12523340851146894], [0.23349253653835458, 0.3678314989981802], [0.20316742672306584, 0.5873179542866175], [0.16007832854334633, 0.7699026741943047], [0.10693932599531818, 0.9041172563704748], [0.04717533638650846, 0.9815606342467192]]
+        }
+
+        const lineLength = (p1, p2) => {
+            return Math.sqrt(
+                (p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y)
+            );
+        }
+
+        /**
+         * Based on snap.svg bezlen() function
+         * https://github.com/adobe-webplatform/Snap.svg/blob/master/dist/snap.svg.js#L5786
+         */
+        const cubicBezierLength = (p0, cp1, cp2, p, t, lg = 12) => {
+            if (t === 0) {
+                return 0;
+            }
+
+            const base3 = (t, p1, p2, p3, p4) => {
+                let t1 = -3 * p1 + 9 * p2 - 9 * p3 + 3 * p4,
+                    t2 = t * t1 + 6 * p1 - 12 * p2 + 6 * p3;
+                return t * t2 - 3 * p1 + 3 * p2;
+            };
+            t = t > 1 ? 1 : t < 0 ? 0 : t;
+            let t2 = t / 2;
+
+            /**
+             * set higher legendre gauss weight abscissae values 
+             * by more accurate weight/abscissa  lookups 
+             * https://pomax.github.io/bezierinfo/legendre-gauss.html
+             */
+
+            wa = lgVals[lg]
+            let sum = 0;
+
+            for (let i = 0, len = wa.length; i < len; i++) {
+                // weight and abscissae 
+                let [w, a] = [wa[i][0], wa[i][1]];
+                let ct1_t = t2 * a;
+                let ct1 = ct1_t + t2;
+                let ct0 = -ct1_t + t2;
+
+                let xbase0 = base3(ct0, p0.x, cp1.x, cp2.x, p.x)
+                let ybase0 = base3(ct0, p0.y, cp1.y, cp2.y, p.y)
+                let comb0 = xbase0 * xbase0 + ybase0 * ybase0;
+
+                let xbase1 = base3(ct1, p0.x, cp1.x, cp2.x, p.x)
+                let ybase1 = base3(ct1, p0.y, cp1.y, cp2.y, p.y)
+                let comb1 = xbase1 * xbase1 + ybase1 * ybase1;
+
+                sum += w * Math.sqrt(comb0) + w * Math.sqrt(comb1)
+
+            }
+            return t2 * sum;
+        }
+
+
+        const quadraticBezierLength = (p0, cp1, p, t, checkFlat = false) => {
+            if (t === 0) {
+                return 0;
+            }
+            // is flat/linear – treat as line
+            if (checkFlat) {
+                let l1 = lineLength(p0, cp1) + lineLength(cp1, p);
+                let l2 = lineLength(p0, p);
+                if (l1 === l2) {
+                    return l2;
+                }
+            }
+
+            let a, b, c, d, e, e1, d1, v1x, v1y;
+            v1x = cp1.x * 2;
+            v1y = cp1.y * 2;
+            d = p0.x - v1x + p.x;
+            d1 = p0.y - v1y + p.y;
+            e = v1x - 2 * p0.x;
+            e1 = v1y - 2 * p0.y;
+            a = 4 * (d * d + d1 * d1);
+            b = 4 * (d * e + d1 * e1);
+            c = e * e + e1 * e1;
+
+            const bt = b / (2 * a),
+                ct = c / a,
+                ut = t + bt,
+                k = ct - bt ** 2;
+
+            return (
+                (Math.sqrt(a) / 2) *
+                (ut * Math.sqrt(ut ** 2 + k) -
+                    bt * Math.sqrt(bt ** 2 + k) +
+                    k *
+                    Math.log((ut + Math.sqrt(ut ** 2 + k)) / (bt + Math.sqrt(bt ** 2 + k))))
+            );
+        }
+
+
+        let length
+        if (pts.length === 4) {
+            length = cubicBezierLength(pts[0], pts[1], pts[2], pts[3], t, lg)
+        }
+        else if (pts.length === 3) {
+            length = quadraticBezierLength(pts[0], pts[1], pts[2], t)
+        }
+        else {
+            length = lineLength(pts[0], pts[1])
+        }
+
+        return length;
+    }
+
+    const getPathDataBBox = (pathData) => {
+        // get segment bboxes
+        let allX = [];
+        let allY = [];
+        for (let i = 1; i < pathData.length; i++) {
+            let comPrev = pathData[i - 1];
+            let valuesPrev = comPrev.values;
+            let valuesPrevL = valuesPrev.length;
+            let p0 = { x: valuesPrev[valuesPrevL - 2], y: valuesPrev[valuesPrevL - 1] };
+
+            let com = pathData[i];
+            let { type, values } = com;
+            let valuesL = values.length;
+            let p = { x: values[valuesL - 2], y: values[valuesL - 1] };
+            let cp1, cp2, length, commandBBox;
+
+            let M = pathData[0].values;
+            cp1 = valuesL ? { x: values[0], y: values[1] } : M;
+            cp2 = type === 'C' ? { x: values[valuesL - 4], y: values[valuesL - 3] } : cp1;
+
+            // get approximated path bbox
+            if (valuesL) {
+                allX.push(p0.x, cp1.x, cp2.x, p.x);
+                allY.push(p0.y, cp1.y, cp2.y, p.y);
+            }
+        }
+
+        /**
+         * total bounding box 
+         * (coarse approximation)
+         * are two paths remotely intersecting at all
+         */
+        let minX = Math.min(...allX);
+        let minY = Math.min(...allY);
+        let maxX = Math.max(...allX);
+        let maxY = Math.max(...allY);
+        let bb = { x: minX, y: minY, right: maxX, bottom: maxY };
+
+        return bb;
+    }
+
+    const commandBBox = (points) => {
+        let allX = points.map(pt => { return pt.x })
+        let allY = points.map(pt => { return pt.y })
+
+        minX = Math.min(...allX);
+        maxX = Math.max(...allX);
+        minY = Math.min(...allY);
+        maxY = Math.max(...allY);
+
+        bb = {
+            x: minX,
+            y: minY,
+            width: maxX - minX,
+            height: maxY - minY,
+            right: maxX,
+            bottom: maxY
+        }
+        //console.log(bb);
+        return bb;
+    }
+
+    const isLine = (bez) => {
+        return (
+            bez[0] === bez[2] &&
+            bez[1] === bez[3] &&
+            bez[4] === bez[6] &&
+            bez[5] === bez[7]
+        );
+    }
+
+
+
 
     // all results
     let res = [];
@@ -176,203 +515,6 @@ function findPathDataIntersections(pathData1, pathData2, stopAtFirst = false, sa
     return res;
 }
 
-function findCommandIntersections(data1, data2, xy, stopAtFirst = false) {
-
-    let intersections = [];
-    let quit = false;
-    for (i = 0; i < data1.splits && !quit; i++) {
-
-        for (let j = 0; j < data2.splits && !quit; j++) {
-            let l1 = data1.dots[i],
-                l1_1 = data1.dots[i + 1],
-
-                l2 = data2.dots[j],
-                l2_1 = data2.dots[j + 1],
-                ci = Math.abs(l1_1.x - l1.x) < .01 ? 'y' : 'x',
-                cj = Math.abs(l2_1.x - l2.x) < .01 ? 'y' : 'x';
-
-
-            let intersection = intersectLines(l1.x, l1.y, l1_1.x, l1_1.y, l2.x, l2.y, l2_1.x, l2_1.y)
-            if (intersection) {
-
-                if (stopAtFirst && intersections) {
-                    quit = true
-                }
-
-                let intersection_key = intersection.x.toFixed(1) + '_' + intersection.y.toFixed(1);
-
-                //if coorl1nates already found: skip
-                if (xy[intersection_key]) {
-                    continue;
-                }
-                // save found intersection
-                xy[intersection_key] = true;
-
-                let t1 = l1.t + Math.abs((intersection[ci] - l1[ci]) / (l1_1[ci] - l1[ci])) * (l1_1.t - l1.t),
-                    t2 = l2.t + Math.abs((intersection[cj] - l2[cj]) / (l2_1[cj] - l2[cj])) * (l2_1.t - l2.t);
-
-                if (t1 >= 0 && t1 <= 1 && t2 >= 0 && t2 <= 1) {
-
-                    intersections.push({
-                        x: intersection.x,
-                        y: intersection.y,
-                        t1: t1,
-                        t2: t2
-                    });
-                }
-            }
-        }
-    }
-
-    return intersections;
-}
-
-
-function intersectLines(x1, y1, x2, y2, x3, y3, x4, y4) {
-
-    const isOnLine = (x1, y1, x2, y2, px, py, tolerance = 0.001) => {
-        var f = function (somex) { return (y2 - y1) / (x2 - x1) * (somex - x1) + y1; };
-        return Math.abs(f(px) - py) < tolerance
-            && px >= x1 && px <= x2;
-    }
-
-    if (
-        Math.max(x1, x2) < Math.min(x3, x4) ||
-        Math.min(x1, x2) > Math.max(x3, x4) ||
-        Math.max(y1, y2) < Math.min(y3, y4) ||
-        Math.min(y1, y2) > Math.max(y3, y4)
-    ) {
-        return;
-    }
-
-    var nx = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4),
-        ny = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4),
-        denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
-
-    if (!denominator) {
-        return;
-    }
-
-    let px = (nx / denominator),
-        py = (ny / denominator);
-
-    let px2 = +px.toFixed(2),
-        py2 = +py.toFixed(2);
-
-    // if final point is on line
-    let isOnline = isOnLine(x3, y3, x4, y4, x2, y2, 0.1)
-
-    if (isOnline) {
-        return { x: x2, y: y2 };
-    }
-
-    if (
-        px2 < +Math.min(x1, x2).toFixed(2) ||
-        px2 > +Math.max(x1, x2).toFixed(2) ||
-        px2 < +Math.min(x3, x4).toFixed(2) ||
-        px2 > +Math.max(x3, x4).toFixed(2) ||
-        py2 < +Math.min(y1, y2).toFixed(2) ||
-        py2 > +Math.max(y1, y2).toFixed(2) ||
-        py2 < +Math.min(y3, y4).toFixed(2) ||
-        py2 > +Math.max(y3, y4).toFixed(2)
-    ) {
-        return;
-    }
-
-    return { x: px, y: py };
-}
-
-function isBBoxIntersect(bbox1, bbox2) {
-
-    let { x, y, right, bottom } = bbox1;
-    let [x2, y2, right2, bottom2] = [bbox2.x, bbox2.y, bbox2.right, bbox2.bottom];
-
-    let bboxIntersection =
-        x <= right2 &&
-            y <= bottom2 &&
-            bottom >= y2 &&
-            right >= x2 ?
-            true :
-            false;
-
-    return bboxIntersection;
-
-}
-
-function getPathDataBBox(pathData) {
-    // get segment bboxes
-    let allX = [];
-    let allY = [];
-    for (let i = 1; i < pathData.length; i++) {
-        let comPrev = pathData[i - 1];
-        let valuesPrev = comPrev.values;
-        let valuesPrevL = valuesPrev.length;
-        let p0 = { x: valuesPrev[valuesPrevL - 2], y: valuesPrev[valuesPrevL - 1] };
-
-        let com = pathData[i];
-        let { type, values } = com;
-        let valuesL = values.length;
-        let p = { x: values[valuesL - 2], y: values[valuesL - 1] };
-        let cp1, cp2, length, commandBBox;
-
-        let M = pathData[0].values;
-        cp1 = valuesL ? { x: values[0], y: values[1] } : M;
-        cp2 = type === 'C' ? { x: values[valuesL - 4], y: values[valuesL - 3] } : cp1;
-
-        // get approximated path bbox
-        if (valuesL) {
-            allX.push(p0.x, cp1.x, cp2.x, p.x);
-            allY.push(p0.y, cp1.y, cp2.y, p.y);
-        }
-
-    }
-
-    /**
-     * total bounding box 
-     * (coarse approximation)
-     * are two paths remotely intersecting at all
-     */
-    let minX = Math.min(...allX);
-    let minY = Math.min(...allY);
-    let maxX = Math.max(...allX);
-    let maxY = Math.max(...allY);
-    let bb = { x: minX, y: minY, right: maxX, bottom: maxY };
-
-    return bb;
-}
-
-function commandBBox(points) {
-
-    let allX = points.map(pt => { return pt.x })
-    let allY = points.map(pt => { return pt.y })
-
-    minX = Math.min(...allX);
-    maxX = Math.max(...allX);
-    minY = Math.min(...allY);
-    maxY = Math.max(...allY);
-
-    bb = {
-        x: minX,
-        y: minY,
-        width: maxX - minX,
-        height: maxY - minY,
-        right: maxX,
-        bottom: maxY
-    }
-    //console.log(bb);
-    return bb;
-}
-
-
-
-function isLine(bez) {
-    return (
-        bez[0] === bez[2] &&
-        bez[1] === bez[3] &&
-        bez[4] === bez[6] &&
-        bez[5] === bez[7]
-    );
-}
 
 
 
@@ -428,124 +570,6 @@ function pointAtT(pts, t = 0.5) {
     return pt
 }
 
-
-
-/**
- * get all lengths
- */
-
-function getLength(pts, t = 1, lg = 'wa12') {
-
-    const lgVals = {
-        wa12: [[0.24914704581340288, 0.12523340851146894], [0.23349253653835458, 0.3678314989981802], [0.20316742672306584, 0.5873179542866175], [0.16007832854334633, 0.7699026741943047], [0.10693932599531818, 0.9041172563704748], [0.04717533638650846, 0.9815606342467192]]
-    }
-
-    const lineLength = (p1, p2) => {
-        return Math.sqrt(
-            (p2.x - p1.x) * (p2.x - p1.x) + (p2.y - p1.y) * (p2.y - p1.y)
-        );
-    }
-
-    /**
-     * Based on snap.svg bezlen() function
-     * https://github.com/adobe-webplatform/Snap.svg/blob/master/dist/snap.svg.js#L5786
-     */
-    const cubicBezierLength = (p0, cp1, cp2, p, t, lg = 12) => {
-        if (t === 0) {
-            return 0;
-        }
-
-        const base3 = (t, p1, p2, p3, p4) => {
-            let t1 = -3 * p1 + 9 * p2 - 9 * p3 + 3 * p4,
-                t2 = t * t1 + 6 * p1 - 12 * p2 + 6 * p3;
-            return t * t2 - 3 * p1 + 3 * p2;
-        };
-        t = t > 1 ? 1 : t < 0 ? 0 : t;
-        let t2 = t / 2;
-
-        /**
-         * set higher legendre gauss weight abscissae values 
-         * by more accurate weight/abscissa  lookups 
-         * https://pomax.github.io/bezierinfo/legendre-gauss.html
-         */
-
-        wa = lgVals[lg]
-        let sum = 0;
-
-        for (let i = 0, len = wa.length; i < len; i++) {
-            // weight and abscissae 
-            let [w, a] = [wa[i][0], wa[i][1]];
-            let ct1_t = t2 * a;
-            let ct1 = ct1_t + t2;
-            let ct0 = -ct1_t + t2;
-
-            let xbase0 = base3(ct0, p0.x, cp1.x, cp2.x, p.x)
-            let ybase0 = base3(ct0, p0.y, cp1.y, cp2.y, p.y)
-            let comb0 = xbase0 * xbase0 + ybase0 * ybase0;
-
-            let xbase1 = base3(ct1, p0.x, cp1.x, cp2.x, p.x)
-            let ybase1 = base3(ct1, p0.y, cp1.y, cp2.y, p.y)
-            let comb1 = xbase1 * xbase1 + ybase1 * ybase1;
-
-            sum += w * Math.sqrt(comb0) + w * Math.sqrt(comb1)
-
-        }
-        return t2 * sum;
-    }
-
-
-    const quadraticBezierLength = (p0, cp1, p, t, checkFlat = false) => {
-        if (t === 0) {
-            return 0;
-        }
-        // is flat/linear – treat as line
-        if (checkFlat) {
-            let l1 = lineLength(p0, cp1) + lineLength(cp1, p);
-            let l2 = lineLength(p0, p);
-            if (l1 === l2) {
-                return l2;
-            }
-        }
-
-        let a, b, c, d, e, e1, d1, v1x, v1y;
-        v1x = cp1.x * 2;
-        v1y = cp1.y * 2;
-        d = p0.x - v1x + p.x;
-        d1 = p0.y - v1y + p.y;
-        e = v1x - 2 * p0.x;
-        e1 = v1y - 2 * p0.y;
-        a = 4 * (d * d + d1 * d1);
-        b = 4 * (d * e + d1 * e1);
-        c = e * e + e1 * e1;
-
-        const bt = b / (2 * a),
-            ct = c / a,
-            ut = t + bt,
-            k = ct - bt ** 2;
-
-        return (
-            (Math.sqrt(a) / 2) *
-            (ut * Math.sqrt(ut ** 2 + k) -
-                bt * Math.sqrt(bt ** 2 + k) +
-                k *
-                Math.log((ut + Math.sqrt(ut ** 2 + k)) / (bt + Math.sqrt(bt ** 2 + k))))
-        );
-    }
-
-
-    let length
-    if (pts.length === 4) {
-        length = cubicBezierLength(pts[0], pts[1], pts[2], pts[3], t, lg)
-    }
-    else if (pts.length === 3) {
-        length = quadraticBezierLength(pts[0], pts[1], pts[2], t)
-    }
-    else {
-        length = lineLength(pts[0], pts[1])
-    }
-
-    return length;
-}
 
 
 /**
@@ -970,4 +994,18 @@ function parsePathDataNormalized(d, options = {}) {
      */
     pathData[0].type = "M";
     return pathData;
+}
+
+
+	pathIntersections.findPathIntersections=findPathIntersections;
+	pathIntersections.checkPathIntersection=checkPathIntersection;
+	pathIntersections.findPathDataIntersections=findPathDataIntersections;
+	pathIntersections.pointAtT=pointAtT;
+	pathIntersections.parsePathDataNormalized=parsePathDataNormalized;
+	return pathIntersections;
+  
+});
+
+if (typeof module === 'undefined') {
+	var {findPathIntersections, checkPathIntersection, findPathDataIntersections, pointAtT, parsePathDataNormalized}=pathIntersections;
 }
