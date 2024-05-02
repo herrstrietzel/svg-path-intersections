@@ -1,5 +1,6 @@
 # svg-path-intersections
-A standalone library to get intersections between two SVG paths.
+A standalone library to get intersections between two SVG paths. 
+~ 9KB minified/ 4KB gzipped.  
 
 It includes a path data parser compliant with the [W3C SVGPathData interface draft](https://svgwg.org/specs/paths/#InterfaceSVGPathData) and can handle all minified stringified path data inputs (especially `A` commands with concatenated largeArc, sweep and final on-path parameters "bomb" quite a few other libraries).  
 
@@ -18,6 +19,11 @@ let intersections = findPathDataIntersections(pathData1, pathData2)
 
 
 ### Browser
+
+```
+<script src="https://cdn.jsdelivr.net/npm/svg-path-intersections@1.0.1/js/svg-path-intersections_standalone.min.js"></script>
+```  
+
 ```
 let d1 = 'M 75 0 a 1 1 45 010 100 1 1 45 010 -100'
 let d2 = 'M 50 0 a 1 1 45 010 100 1 1 45 010 -100'
@@ -40,6 +46,9 @@ let intersections= findPathIntersections(d1, d2);
 console.log(JSON.stringify(intersections, null, ' '));
 
 ```
+
+### Demos
+* [Codepen: multiple path examples and speed test](https://codepen.io/herrstrietzel/pen/bGJyOXB)
 
 ### Output 
 
@@ -145,7 +154,21 @@ This way, you can calculate coordinates for both paths or split each path at `t`
 ```
 
 ### Adjacent "touching" paths
-Unlike other libraries path-intersections will also detect touching paths 
+Unlike other libraries path-intersections will also detect touching paths.
+
+![touching points](https://raw.githubusercontent.com/herrstrietzel/svg-path-intersections/main/img/touching-paths.png)
+
+
+## Similar libraries
+* [thelonious's "kld-intersections"](https://github.com/thelonious/kld-intersections)
+* [Pomax's "bezierjs"](https://github.com/Pomax/bezierjs)
+* [bpmn-io's "path-intersection"](https://github.com/bpmn-io/path-intersection)
 
 
 
+## Credits
+
+* Jarek Foksa for his [great polyfill](https://github.com/jarek-foksa/path-data-polyfill) heavily inspring to adopt the new pathData interface methodology and for contributing to the specification
+* Dmitry Baranovskiy for (raphael.j/snap.svg) [pathToAbsolute/Relative functions](https://github.com/DmitryBaranovskiy/raphael/blob/master/raphael.js#L1848) 
+* Vitaly Puzrin (fontello) for the arc to cubic conversion method  [a2c.js](https://github.com/fontello/svgpath/blob/master/lib/a2c.js) and [cubic to quadratic approximation](https://github.com/fontello/cubic2quad/blob/master/test/cubic2quad.js)
+* Mike "POMAX" Kammermans for his great [A Primer on Bézier Curves](https://pomax.github.io/bezierinfo)
