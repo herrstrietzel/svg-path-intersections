@@ -21,8 +21,13 @@ let intersections = findPathDataIntersections(pathData1, pathData2)
 ### Browser
 
 ```
-<script src="https://cdn.jsdelivr.net/npm/svg-path-intersections@1.0.1/js/svg-path-intersections_standalone.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-path-intersections@1.0.3/js/svg-path-intersections_standalone.js"></script>
 ```  
+or  
+
+```
+<script src="https://unpkg.com/svg-path-intersections@1.0.3/js/svg-path-intersections_standalone.js"></script>
+```
 
 ```
 let d1 = 'M 75 0 a 1 1 45 010 100 1 1 45 010 -100'
