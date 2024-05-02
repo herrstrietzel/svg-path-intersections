@@ -158,12 +158,15 @@ Unlike other libraries path-intersections will also detect touching paths.
 
 ![touching points](https://raw.githubusercontent.com/herrstrietzel/svg-path-intersections/main/img/touching-paths.png)
 
+## Related repositories
+* [svg-parse-path-normalized](https://github.com/herrstrietzel/svg-parse-path-normalized) – Parse path data from string including fine-grained normalizing options  
+* [svg-getpointatlength](https://github.com/herrstrietzel/svg-getpointatlength) – calculate path length and point at paths on raw path data
+
 
 ## Similar libraries
 * [thelonious's "kld-intersections"](https://github.com/thelonious/kld-intersections)
 * [Pomax's "bezierjs"](https://github.com/Pomax/bezierjs)
 * [bpmn-io's "path-intersection"](https://github.com/bpmn-io/path-intersection)
-
 
 
 ## Credits
