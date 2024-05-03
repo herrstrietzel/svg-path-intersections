@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CodePen - Svg-path-intersections</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+
+
+    <div class="grd grd-left">
+
+        <div class="col col-left">
+            <h1>Svg-path-intersections</h1>
+            <p>Get all intersection. bewteen 2 paths. Based on
+                Stackoverflow
+                post: <a
+                    href="https://stackoverflow.com/questions/42070839/intersection-of-2-svg-paths/75488308">Intersection
+                    of
+                    2
+                    SVG Paths</a> </p>
+            <p>See github repo <a
+                    href="https://github.com/herrstrietzel/svg-path-intersections">svg-path-intersections</a>
+            </p>
+
+            <!-- samples -->
+            <fieldset>
+                <legend>Samples</legend>
+                <select class="--inputs" id="inputExample" class="">
+                </select>
+            </fieldset>
+
+            <fieldset>
+                <legend>Custom paths</legend>
+                <div class="grd grd-2">
+                    <div class="col">
+                        <textarea class="inputs" id="inputPath1"></textarea>
+                    </div>
+
+                    <div class="col">
+                        <textarea class="inputs" id="inputPath2"></textarea>
+                    </div>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend>Quality</legend>
+                <select class="inputs" id="inputQuality">
+                    <option value="low">low</option>
+                    <option value="medium" selected>medium</option>
+                    <option value="high">high</option>
+                </select>
+            </fieldset>
+
+
+            <p><label><input class="inputs" id="inputCollision" type="checkbox"> Collision check (Only first
+                    intersection -
+                    faster)</label>
+            </p>
+
+            <h3>Timing: <span id="time"></span></h3>
+
+
+            <fieldset>
+                <legend>Only intersection point</legend>
+                <textarea id="resultPoints"></textarea>
+            </fieldset>
+
+            <fieldset>
+                <legend>Full Result</legend>
+                <textarea id="result"></textarea>
+            </fieldset>
+        </div>
+
+        <div class="col col-right">
+            <svg id="svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                <path id="p1" d="" stroke="#222" />
+                <path id="p2" d="" stroke="#ccc" />
+                <g id="gInter"></g>
+
+            </svg>
+        </div>
+    </div>
+
+
+
+    <script src="../js/svg-path-intersections_standalone.js"></script>
+    <!-- 
+        <script src="https://cdn.jsdelivr.net/npm/svg-path-intersections@latest/js/svg-path-intersections_standalone.min.js"></script>
+    -->
+
+    <script>
+
+        let samples = {
+            lineCurveQuadratic: ["M100 20 l 0 180", "M48 84 Q 100 187 166 37"],
+            lineCurveCubic: ["M100 20 v 180", "M48 84C82.667 152.667 122 137 166 37"],
+            lineLine: ["M100 20 v 180", "M48 84 L166 37"],
+            simple: [
+                "M 50 10 c 120 120 120 120 120 20",
+                "M 150 10 c 120 120 120 120 120 20"
+            ],
+            simple2: [
+                "M 170 30 L 50 10 C 170 130 170 130 170 30 z",
+                "M 150 10 C 270 130 270 130 270 30 z"
+            ],
+
+            simple3: [
+                "M 50 10 c 120 120 135 120 150 20 Z",
+                "M 150 10 c 120 120 120 120 120 20 Z"
+            ],
+            simple3Q: [
+                "M 50 10 c 120 120 135 120 150 20 Z",
+                "M150 10q43.2 43.2 58.56 57.76 23.74 22.5 35.52 29.92 12.63 7.95 18.24 3.04 5.24-4.58 6.72-22.88 .96-11.84 .96-47.84z"
+            ],
+
+            quad: [
+                "M50 10q43.2 43.2 58.56 57.76q23.738 22.502 35.52 29.92q12.628 7.951 18.24 3.04q5.236-4.582 6.72-22.88q0.96-11.84 0.96-47.84z",
+                "M120 10q43.2 43.2 58.56 57.76q23.738 22.502 35.52 29.92q12.628 7.951 18.24 3.04q5.236-4.582 6.72-22.88q0.96-11.84 0.96-47.84z"
+            ],
+            single: [
+                `M26.087,11.949c16.308,8.267,46.611,29.785,8.947,39.524`,
+                `M72.066,13.761c-8.04,4.303-49.15,16.987,0.793,45.752`
+            ],
+
+            notintersecting: [
+                `M72.066,13.761c-8.04,4.303-49.15,16.987,0.793,45.752`,
+                `M126.087,11.949c16.308,8.267,46.611,29.785,8.947,39.524`
+            ],
+
+            complex: [
+                " M  529 664  C  93 290  616 93  1942 385  C  1014 330  147 720  2059 70  C  1307 400  278 713  1686 691 ",
+                "M  1711 363  C  847 15  1797 638  1230 169  C  1198 443  1931 146  383 13  C  1103 286  1063 514  521 566 "
+            ],
+            cubic2: [
+                `M0 100
+                   C 33.33 33.33  66.67 33.33  100 100`,
+                `M0 75 100 75`
+            ],
+
+            quadratic: [`M 0 0Q 100 50 0 100`, `M25 0 25 100`],
+            circles: [
+                "M 75 0 a 1 1 45 010 100 1 1 45 010 -100",
+                `M 50 0 a 1 1 45 010 100 1 1 45 010 -100`
+            ],
+
+            intersect: [
+                'M30.844,74.464c54.757-54.757-29.162-55.493,26.33,0',
+                'M30.844,61.898c54.757-54.757-29.162-55.493,26.33,0'
+            ]
+        };
+
+        let svg = document.querySelector("svg");
+        let paths = svg.querySelectorAll("path");
+
+        // load examples
+        let ind = 0;
+        for (let key in samples) {
+            let option = document.createElement("option");
+            option.value = key;
+            option.innerHTML = ind + ". " + key;
+            inputExample.append(option);
+            ind++;
+        }
+
+        //load example
+        initFromStorage()
+        update();
+
+        let inputs = document.querySelectorAll(".inputs");
+        inputs.forEach((inp) => {
+            inp.addEventListener("input", (e) => {
+                update();
+            });
+        });
+
+        inputExample.addEventListener("input", (e) => {
+            let d1 = samples[inputExample.value][0];
+            let d2 = samples[inputExample.value][1];
+            inputPath1.value = d1;
+            inputPath2.value = d2;
+            //console.log(d1, d2);
+            update();
+        });
+
+        function initFromStorage() {
+            let cache = window.localStorage.getItem("pathIntersectionsSettings");
+            if (cache) {
+                data = JSON.parse(cache);
+                inputQuality.value = data.quality;
+                inputCollision.checked = data.onlyCollision ? true : false;
+                inputExample.options[data.exampleId || 0].selected = true
+
+                inputPath1.value = data.pathdata1 && data.pathdata1!==undefined ? data.pathdata1 : samples[inputExample.value][0];
+                inputPath2.value = data.pathdata2 && data.pathdata2!==undefined ? data.pathdata2 : samples[inputExample.value][1];
+
+            }
+
+        }
+
+        function update() {
+            let cache = window.localStorage.getItem("pathIntersectionsSettings");
+            let sampleDistance, onlyCollision, example;
+            let data = {};
+            if (cache) {
+                data = JSON.parse(cache);
+            }
+
+            //update storage
+            data.onlyCollision = inputCollision.checked;
+            data.quality = inputQuality.value;
+            data.exampleId = inputExample.selectedIndex;
+            data.pathdata1 = inputPath1.value;
+            data.pathdata2 = inputPath2.value;
+            window.localStorage.setItem("pathIntersectionsSettings", JSON.stringify(data));
+
+            ({ quality, onlyCollision, example, exampleId, pathdata1, pathdata2 } = data);
+            let d1 = inputPath1.value;
+            let d2 = inputPath2.value;
+
+            if(!d1 || !d2){
+                return false
+            }
+
+
+            gInter.innerHTML = "";
+            p1.setAttribute("d", d1);
+            p2.setAttribute("d", d2);
+            adjustViewBox(svg);
+
+
+            /// find intersections
+            let t0 = performance.now();
+            let intersection = onlyCollision
+                ? checkCollision(d1, d2)
+                : findPathIntersections(d1, d2, false, quality);
+            let t1 = performance.now() - t0;
+
+            let totalIntersections = intersection.length
+                ? intersection.length
+                : intersection;
+            time.textContent =
+                +t1.toFixed(5) + " ms " + totalIntersections + " intersections";
+
+            result.textContent = ''
+            resultPoints.textContent = ''
+
+            //render intersections
+            if (intersection.length) {
+                result.textContent = JSON.stringify(intersection, null, ' ')
+
+                resultPoints.textContent = JSON.stringify(intersection.map(pt => { return { x: pt.x, y: pt.y } }), null, ' ')
+
+                intersection.forEach((inter, i) => {
+                    let pts1 = inter.cpts1;
+                    let pts2 = inter.cpts2;
+                    let { t1, t2 } = inter;
+
+                    let pt1 = pointAtT(pts1, t1);
+                    let pt2 = pointAtT(pts2, t2);
+
+                    renderPoint(gInter, pt1, "none", "1%", "red");
+                    if (pt2) {
+                        renderPoint(gInter, pt2, "none", "0.75%", "green");
+                    }
+                    renderPoint(gInter, [inter.x, inter.y], "red", "0.5%", 'none', '0.5');
+
+                });
+            }
+
+        }
+
+        /**
+         * adjjust viewBox
+         */
+        function adjustViewBox(svg) {
+            let bb = svg.getBBox();
+            let [x, y, width, height] = [bb.x, bb.y, bb.width, bb.height];
+            svg.setAttribute("viewBox", [x, y, width, height].join(" "));
+        }
+
+
+        function renderPoint(
+            svg,
+            coords,
+            fill = "red",
+            r = "2",
+            stroke = "none",
+            opacity = "1",
+            id = "",
+            className = ""
+        ) {
+            //console.log(coords);
+            if (Array.isArray(coords)) {
+                coords = {
+                    x: coords[0],
+                    y: coords[1]
+                };
+            }
+
+            let marker = `<circle class="${className}" opacity="${opacity}" id="${id}" cx="${coords.x}" cy="${coords.y}" r="${r}" stroke="${stroke}" fill="${fill}">
+<title>${coords.x} ${coords.y}</title></circle>`;
+            svg.insertAdjacentHTML("beforeend", marker);
+        }
+
+
+
+
+    </script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,101 @@
+body {
+  font-family: sans-serif;
+  margin:0;
+  padding: 0;
+}
+*{
+  box-sizing: border-box;
+}
+
+svg {
+  width:100%;
+  overflow: visible;
+  max-height: 100vh;
+}
+
+path {
+  fill: none;
+}
+
+textarea {
+  width: 100%;
+  min-height: 10em;
+}
+
+.grd {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2em;
+}
+
+.grd-left{
+  height:100vh
+}
+
+.grd-2{
+  grid-template-columns: 1fr;
+  gap: 1em;
+}
+
+.col-left{
+background:#eee;
+padding: 1em;
+}
+
+fieldset {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  margin-top: 1rem;
+  padding-left: 0;
+  padding-right: 0;
+  padding-top: 1rem;
+  border: none;
+  border-top: 0.7em solid var(--color1);
+}
+
+legend {
+  padding: 0;
+  margin: 0;
+  margin-left: 0rem;
+  margin-right: 1rem;
+  padding-left: 0rem;
+  padding-right: 0.5rem;
+  font-weight: 700;
+}
+
+@media (min-width: 1000px) {
+  .grd {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .grd-2{
+    grid-template-columns: 1fr 1fr;
+    gap: 1em;
+  }
+
+
+  .col{
+  }
+  .col-right{
+    grid-column: 2/-1;
+    padding:1em;
+  }
+
+  fieldset {
+    padding-left: 0;
+  }
+
+  .grd > fieldset:first-of-type {
+    margin-left: 1rem;
+    max-height: 100vh;
+    padding-right:1em;
+    overflow-y: auto;
+  }
+
+  fieldset:last-of-type {
+    margin-right: 1rem;
+    padding-right: 0;
+  }
+}

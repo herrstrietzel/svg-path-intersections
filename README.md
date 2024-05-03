@@ -14,19 +14,19 @@ let intersections = findPathIntersections(d1, d2)
 or  use it alongside with other path data parsers like [Jarek Foksa's pathdata-polyfill](https://github.com/jarek-foksa/path-data-polyfill) and pass already parsed path data arrays to the `findPathDataIntersections()` method.
 
 ```
-let intersections = findPathDataIntersections(pathData1, pathData2)
+let checkCollision = checkCollision(pathData1, pathData2) // returns true or false
 ```
 
 
 ### Browser
 
 ```
-<script src="https://cdn.jsdelivr.net/npm/svg-path-intersections@1.0.3/js/svg-path-intersections_standalone.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-path-intersections@latest/js/svg-path-intersections_standalone.min.js"></script>
 ```  
 or  
 
 ```
-<script src="https://unpkg.com/svg-path-intersections@1.0.3/js/svg-path-intersections_standalone.js"></script>
+<script src="https://unpkg.com/svg-path-intersections@latest/js/svg-path-intersections_standalone.js"></script>
 ```
 
 ```
