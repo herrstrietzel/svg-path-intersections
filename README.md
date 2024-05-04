@@ -1,6 +1,6 @@
 # svg-path-intersections
 A standalone library to get intersections between two SVG paths. 
-~ 9KB minified/ 4KB gzipped.  
+~ 10KB minified/ 5KB gzipped.  
 
 It includes a path data parser compliant with the [W3C SVGPathData interface draft](https://svgwg.org/specs/paths/#InterfaceSVGPathData) and can handle all minified stringified path data inputs (especially `A` commands with concatenated largeArc, sweep and final on-path parameters "bomb" quite a few other libraries).  
 
@@ -52,8 +52,34 @@ console.log(JSON.stringify(intersections, null, ' '));
 
 ```
 
+## Parameters/Options
+
+
+| Option | values/default | Effect |
+|--|--|--|
+| pathData1, pathData2 | path data input | accepts stringified pathdata or parsed arrays | 
+| stopAtFirst | false | stop search after first occurrence: helps to speed up processing e.g. for collision checks  | 
+| quality | low, medium, high | default: "medium"; higher quality results in more accurate coordinates and `t` values at the cost of longer processing times | 
+
+## Methods 
+* `findPathIntersections(pathData1, pathData2, stopAtFirst, quality)` : finds all intersections  
+* `checkCollision(d1, d2)`: stops at first intersection – faster than finding all occurences
+* `pointAtT(points, t)`: calculates point at `t` value for lines, quadratic or cubic béziers:  
+     * **cubic bézier:** `pointAtT([{x:0, y:0}, {x:0, y:0}, {x:0, y:0}, {x:0, y:0} ], 0.5)`  
+     (1. previous end point, 2. first control point, 3. second control point, 4. final on-path point)  
+    * **quadratic bézier:** `pointAtT([{x:0, y:0}, {x:0, y:0}, {x:0, y:0} ],  0.5)`  
+    (1. previous end point, 2. first control point, 3. final on-path point)
+    * **lineto** `pointAtT([{x:0, y:0}, {x:0, y:0}], 0.5)`  
+    (1. previous end point, 2. final on-path point)
+* `parsePathDataNormalized(d, options)`  
+   Parse stringified pathdata to array with normalization options. See [complete version with all options](https://github.com/herrstrietzel/svg-parse-path-normalized)  
+   **Default options:** toAbsolute, toLonghands, arcToCubics
+
+
+
 ### Demos
 * [Codepen: multiple path examples and speed test](https://codepen.io/herrstrietzel/pen/bGJyOXB)
+* [Simple demo](https://codepen.io/herrstrietzel/pen/mdgZGrz)
 
 ### Output 
 
