@@ -1,14 +1,22 @@
 # svg-path-intersections
 A standalone library to get intersections between two SVG paths. 
-~ 10KB minified/ 5KB gzipped.  
+~ 16KB minified/ 7KB gzipped.  
+
+* **versatile:** support for paths, shapes (circles, rectangles, polygons etc.)
+* **performant:** optimized by conditional calculation methods for different element types
+* runs in **browser **and headless environments like **node**
 
 It includes a path data parser compliant with the [W3C SVGPathData interface draft](https://svgwg.org/specs/paths/#InterfaceSVGPathData) and can handle all minified stringified path data inputs (especially `A` commands with concatenated largeArc, sweep and final on-path parameters "bomb" quite a few other libraries).  
 
-## Usage 
+![touching points](https://raw.githubusercontent.com/herrstrietzel/svg-path-intersections/main/img/intersections.png)
+
+
+## Usage  
 You can either pass  
 * stringified path data 
 * a path data array
-* a custom shape object using the `svgEl()` helper
+* a custom shape object using the `svgEl()` helper  
+
 
 ```
 let intersections = findPathIntersections(d1, d2)
@@ -20,9 +28,8 @@ or  use it alongside with other path data parsers like [Jarek Foksa's pathdata-p
 let checkCollision = checkCollision(pathData1, pathData2) // returns true or false
 ```
 
-
-### Browser
-
+### Browser   
+   
 ```
 <script src="https://cdn.jsdelivr.net/npm/svg-path-intersections@latest/js/svg-path-intersections_standalone.min.js"></script>
 ```  
@@ -30,7 +37,7 @@ or
 
 ```
 <script src="https://unpkg.com/svg-path-intersections@latest/js/svg-path-intersections_standalone.js"></script>
-```
+```  
 
 ```
 let d1 = 'M 75 0 a 1 1 45 010 100 1 1 45 010 -100'
@@ -38,10 +45,10 @@ let d2 = 'M 50 0 a 1 1 45 010 100 1 1 45 010 -100'
 
 let intersections= findPathIntersections(d1, d2);
 console.log(JSON.stringify(intersections, null, ' '));
-
 ```
 
 ### Node
+   
 ```
 const pathIntersections = require('svg-path-intersections');
 const {findPathIntersections, checkPathIntersection, findPathDataIntersections, pointAtT, parsePathDataNormalized} = pathIntersections;
@@ -53,10 +60,9 @@ let d2 = 'M 50 0 a 1 1 45 010 100 1 1 45 010 -100'
 let intersections= findPathIntersections(d1, d2);
 console.log(JSON.stringify(intersections, null, ' '));
 
-```
+```    
 
 ## Parameters/Options
-
 
 | Option | values/default | Effect |
 |--|--|--|
