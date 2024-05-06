@@ -10,6 +10,17 @@ It includes a path data parser compliant with the [W3C SVGPathData interface dra
 
 ![touching points](https://raw.githubusercontent.com/herrstrietzel/svg-path-intersections/main/img/intersections.png)
 
+* [Usage](#usage)
+  + [Browser](#browser)
+  + [Node](#node)
+* [Parameters/Options](#parameters-options)
+* [Methods](#methods)
+  + [Intersections between shapes via svgEl() helper method](#intersections-between-shapes-via-svgel-helper-method)
+  + [Adjacent "touching" paths](#adjacent-touching-paths)
+* [Related repositories](#related-repositories)
+* [Similar libraries](#similar-libraries)
+* [Credits](#credits)
+
 
 ## Usage  
 You can either pass  
