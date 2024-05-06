@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+    <style>
+        body{
+            font-family:sans-serif
+        }
+        svg {
+            border: 1px solid #ccc;
+            overflow: visible;
+            width: 33%;
+            margin-right: 1em
+        }
+
+        svg * {
+            fill: none;
+            stroke: #000;
+        }
+
+        .g_inter * {
+            fill: red;
+            stroke: none
+        }
+    </style>
+
+
+</head>
+
+<body>
+
+    <h1>Shape intersections</h1>
+    <p>Total processing time (all examples): <span id="time"></span></p>
+
+    <h3>Path</h3>
+    <svg viewBox="0 0 200 100">
+        <path  d="M 75 0 a 1 1 45 010 100 1 1 45 010 -100" />
+        <path  d="M 50 0 a 1 1 45 010 100 1 1 45 010 -100" />
+        <g class="g_inter"></g>
+    </svg>
+
+    <h3>Path congruent</h3>
+    <svg viewBox="0 0 200 100">
+        <path  d="M 75 0 a 1 1 45 010 100 1 1 45 010 -100" />
+        <path  d="M 75 0 a 1 1 45 010 100 1 1 45 010 -100" />
+        <g class="g_inter"></g>
+    </svg>
+    
+    <h3>Path complex</h3>
+    <svg viewBox="379 13 1681 680">
+        <path  d=" M  529 664  C  93 290  616 93  1942 385  C  1014 330  147 720  2059 70  C  1307 400  278 713  1686 691" />
+        <path  d="M  1711 363  C  847 15  1797 638  1230 169  C  1198 443  1931 146  383 13  C  1103 286  1063 514  521 566 " />
+        <g class="g_inter"></g>
+    </svg>
+
+
+    <h3>Circle intersecting</h3>
+    <svg viewBox="0 0 200 100">
+        <circle  cx="40" cy="50" r="30" />
+        <circle  cx="60" cy="50" r="20" />
+        <g class="g_inter"></g>
+    </svg>
+
+    <h3>Circle colliding/touching</h3>
+    <svg viewBox="0 0 200 100">
+        <circle cx="40" cy="50" r="30" />
+        <circle cx="90" cy="50" r="20" />
+        <g class="g_inter"></g>
+    </svg>
+
+
+    <h3>Circle congruent</h3>
+    <svg viewBox="0 0 200 100">
+        <circle  cx="40" cy="50" r="30" />
+        <circle  cx="40" cy="50" r="30" />
+        <g class="g_inter"></g>
+    </svg>
+
+
+    <h3>Ellipse</h3>
+    <svg viewBox="0 0 200 100">
+        <ellipse  cx="60" cy="50" rx="60" ry="30" />
+        <ellipse  cx="80" cy="50" rx="60" ry="30" />
+        <g class="g_inter"></g>
+    </svg>
+    <svg viewBox="0 0 200 100">
+        <ellipse  cx="60" cy="50" rx="60" ry="30" />
+        <ellipse  cx="60" cy="50" rx="60" ry="30" />
+        <g class="g_inter"></g>
+    </svg>
+
+
+    <h3>Polygon </h3>
+    <svg viewBox="0 0 200 100">
+        <polygon
+            points="70 50 70 50 67.7 61.5 61.2 71.2 51.5 77.7 40 80 28.5 77.7 18.8 71.2 12.3 61.5 10 50 12.3 38.5 18.8 28.8 28.5 22.3 40 20 51.5 22.3 61.2 28.8 67.7 38.5" />
+        <polygon
+            points="80 50 80 50 78.5 57.7 74.1 64.1 67.7 68.5 60 70 52.3 68.5 45.9 64.1 41.5 57.7 40 50 41.5 42.3 45.9 35.9 52.3 31.5 60 30 67.7 31.5 74.1 35.9 78.5 42.3" />
+
+        <g class="g_inter"></g>
+    </svg>
+
+    <svg viewBox="0 0 200 100">
+        <polygon
+            points="70 50 70 50 67.7 61.5 61.2 71.2 51.5 77.7 40 80 28.5 77.7 18.8 71.2 12.3 61.5 10 50 12.3 38.5 18.8 28.8 28.5 22.3 40 20 51.5 22.3 61.2 28.8 67.7 38.5" />
+            <polygon
+            points="70 50 70 50 67.7 61.5 61.2 71.2 51.5 77.7 40 80 28.5 77.7 18.8 71.2 12.3 61.5 10 50 12.3 38.5 18.8 28.8 28.5 22.3 40 20 51.5 22.3 61.2 28.8 67.7 38.5" />
+
+        <g class="g_inter"></g>
+    </svg>
+
+
+    <h3>Rect</h3>
+    <svg viewBox="0 0 200 100">
+        <rect x="25" y="25" width="50" height="50" />
+        <rect x="75" y="25" width="50" height="50" />
+        <g class="g_inter"></g>
+    </svg>
+
+    <svg viewBox="0 0 200 100">
+        <rect x="40" y="50" width="50" height="50" />
+        <rect x="75" y="25" width="50" height="50" />
+        <g class="g_inter"></g>
+    </svg>
+
+    <svg viewBox="0 0 200 100">
+        <rect x="40" y="50" width="50" height="50" />
+        <rect x="40" y="50" width="50" height="50" />
+        <g class="g_inter"></g>
+    </svg>
+
+
+    <h3>Lines</h3>
+    <svg viewBox="0 0 200 100">
+        <line x1="25" y1="25" x2="25" y2="75" />
+        <line x1="25" y1="50" x2="75" y2="50" />
+        <g class="g_inter g_inter-line"></g>
+    </svg>
+
+    <svg viewBox="0 0 200 100">
+        <line x1="25" y1="50" x2="75" y2="50" />
+        <line x1="50" y1="25" x2="50" y2="75" />
+        <g class="g_inter"></g>
+    </svg>
+
+    <svg viewBox="0 0 200 100">
+        <line x1="25" y1="50" x2="75" y2="50" />
+        <line x1="75" y1="25" x2="75" y2="75" />
+        <g class="g_inter"></g>
+    </svg>
+
+    <svg viewBox="0 0 200 100">
+        <line x1="25" y1="50" x2="75" y2="50" />
+        <line x1="25" y1="50" x2="75" y2="50" />
+        <g class="g_inter"></g>
+    </svg>
+
+
+    <script src="../js/svg-path-intersections_standalone.js"></script>
+
+    <script>
+
+        let svgs = document.querySelectorAll('svg')
+
+        let t0 = performance.now()
+        svgs.forEach(svg => {
+            let els = svg.querySelectorAll('path, polygon, polyline, rect, circle, ellipse, line')
+            let g_inter = svg.querySelector('.g_inter')
+            let stopAtFirst = false, quality = 'medium';
+            let DOMintersections = getElementIntersections(els[0], els[1], stopAtFirst, quality)
+
+            DOMintersections.forEach(inter => {
+                console.log('inter', inter);
+                renderPoint(g_inter, inter, 'red', '1%', 'none', '0.5')
+            })
+
+        })
+        let t1 = performance.now() - t0;
+        time.textContent = +t1.toFixed(5) + `ms | ${svgs.length} examples`
+
+
+
+
+
+
+
+
+
+        function renderPoint(
+            svg,
+            coords,
+            fill = "red",
+            r = "2",
+            stroke = "none",
+            opacity = "1",
+            id = "",
+            className = ""
+        ) {
+            //console.log(coords);
+            if (Array.isArray(coords)) {
+                coords = {
+                    x: coords[0],
+                    y: coords[1]
+                };
+            }
+
+            let marker = `<circle class="${className}" opacity="${opacity}" id="${id}" cx="${coords.x}" cy="${coords.y}" r="${r}" stroke="${stroke}" fill="${fill}">
+<title>${coords.x} ${coords.y}</title></circle>`;
+            svg.insertAdjacentHTML("beforeend", marker);
+        }
+
+
+
+    </script>
+
+
+</body>
+
+</html>

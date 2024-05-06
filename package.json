@@ -1,6 +1,6 @@
 {
   "name": "svg-path-intersections",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Standalone library to get all intersections between 2 SVG paths",
   "main": "js/svg-path-intersections_standalone.js",
   "scripts": {

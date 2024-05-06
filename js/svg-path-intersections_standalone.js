@@ -13,6 +13,8 @@
 })(this, function () {
     var pathIntersections = {};
 
+
+
     /**
      * Find all intersections between two SVG paths.
      * Based on snap.svg intersection function
@@ -30,11 +32,73 @@
             arcAccuracy: 1
         }
 
+        // is shape object
+        let isObject1 = typeof d1 === 'object' && !Array.isArray(d1);
+        let isObject2 = typeof d2 === 'object' && !Array.isArray(d2);
+        let lineTypes = ['line', 'polyline', 'polygon']
+
+        // congruent
+        if (isObject1 && isObject2){
+            if( JSON.stringify(d1)  === JSON.stringify(d2) && d1.type!=='path' ){
+                console.log('congruent!', d1.type, d1);
+                let pt = {x:0, y:0}
+
+                if(d1.type==='polygon'){
+                    pt.x= d1.points[0]
+                    pt.y= d1.points[1]
+                }
+
+                else if(d1.type==='rect'){
+                    pt.x= d1.x
+                    pt.y= d1.y
+                }
+                else if(d1.type==='circle'){
+                    pt.x= d1.cx + d1.r
+                    pt.y= d1.cy
+                }
+
+                else if(d1.type==='ellipse'){
+                    pt.x= d1.cx + d1.rx
+                    pt.y= d1.cy
+                }
+
+                else if(d1.type==='line'){
+                    pt.x= d1.x1 
+                    pt.y= d1.y1
+                }
+
+
+                return [pt]
+            }
+        }
+
+
+
+        //find circle intersections
+        if (isObject1 && isObject2 && d1.type === 'circle' && d2.type === 'circle') {
+
+            if (d1.cx === d2.cx && d1.cy === d2.cy && d1.r === d2.r) {
+                //return [{ x: d1.cx + d1.r, y: d1.cy }]
+            }
+            return findCircleIntersection(d1, d2)
+        }
+
+        else if (isObject1 && isObject2 && lineTypes.includes(d1.type) && lineTypes.includes(d2.type)) {
+            let interPoly = getPolyIntersections(d1, d2)
+            return interPoly;
+        }
+
         // parse path data
-        let pathData1 = Array.isArray(d1) ? d1 : parsePathDataNormalized(d1, options)
-        let pathData2 = Array.isArray(d1) ? d2 : parsePathDataNormalized(d2, options)
+        let pathData1 = isObject1 ? d1.toPathData() : (Array.isArray(d1) ? d1 : parsePathDataNormalized(d1, options));
+        let pathData2 = isObject2 ? d2.toPathData() : (Array.isArray(d2) ? d2 : parsePathDataNormalized(d2, options));
+
+        //is congruent: return starting point
+        if (JSON.stringify(pathData1) === JSON.stringify(pathData2)) {
+            return [{ x: pathData1[0].values[0], y: pathData1[0].values[1] }]
+        }
 
         return findPathDataIntersections(pathData1, pathData2, stopAtFirst, quality)
+
     }
 
 
@@ -58,6 +122,31 @@
         return findPathDataIntersections(pathData1, pathData2, true, 'low').length;
     }
 
+
+    /**
+     * get intersections from DOM elements
+     */
+    function getElementIntersections(el1, el2, stopAtFirst, quality) {
+        const getSVGELObj = (el) => {
+            let geoAtts = ['cx', 'cy', 'r', 'rx', 'ry', 'x1', 'y1', 'x2', 'y2', 'width', 'height', 'x', 'y', 'd', 'points'];
+
+            let props = {}
+            for (let i = 0; i < geoAtts.length; i++) {
+                let att = geoAtts[i];
+                // convert numbers
+                let val = !isNaN(el.getAttribute(att)) ? +el.getAttribute(att) : el.getAttribute(att);
+                if (val) {
+                    props[att] = val
+                }
+            }
+            return new svgEl(props)
+        }
+        let obj1 = getSVGELObj(el1)
+        let obj2 = getSVGELObj(el2)
+        let intersections = findPathIntersections(obj1, obj2, stopAtFirst, quality)
+        return intersections;
+
+    }
 
 
     //  intersection from parsed path data
@@ -124,21 +213,6 @@
             return intersections;
         }
 
-        const isBBoxIntersect = (bbox1, bbox2) => {
-
-            let { x, y, right, bottom } = bbox1;
-            let [x2, y2, right2, bottom2] = [bbox2.x, bbox2.y, bbox2.right, bbox2.bottom];
-
-            let bboxIntersection =
-                x <= right2 &&
-                    y <= bottom2 &&
-                    bottom >= y2 &&
-                    right >= x2 ?
-                    true :
-                    false;
-
-            return bboxIntersection;
-        }
 
         const lineLength = (p0, p1) => {
             return Math.sqrt(
@@ -187,26 +261,7 @@
             return bb;
         }
 
-        const commandBBox = (points) => {
-            let allX = points.map(pt => { return pt.x })
-            let allY = points.map(pt => { return pt.y })
 
-            minX = Math.min(...allX);
-            maxX = Math.max(...allX);
-            minY = Math.min(...allY);
-            maxY = Math.max(...allY);
-
-            bb = {
-                x: minX,
-                y: minY,
-                width: maxX - minX,
-                height: maxY - minY,
-                right: maxX,
-                bottom: maxY
-            }
-            //console.log(bb);
-            return bb;
-        }
 
         const isLine = (bez) => {
             return (
@@ -216,6 +271,7 @@
                 bez[5] === bez[7]
             );
         }
+
 
 
         const getBezierLineIntersection = (points, line) => {
@@ -395,62 +451,6 @@
 
 
 
-        const intersectLines = (p1, p2, p3, p4) => {
-
-            const isOnLine = (x1, y1, x2, y2, px, py, tolerance = 0.001) => {
-                var f = function (somex) { return (y2 - y1) / (x2 - x1) * (somex - x1) + y1; };
-                return Math.abs(f(px) - py) < tolerance
-                    && px >= x1 && px <= x2;
-            }
-
-            if (
-                Math.max(p1.x, p2.x) < Math.min(p3.x, p4.x) ||
-                Math.min(p1.x, p2.x) > Math.max(p3.x, p4.x) ||
-                Math.max(p1.y, p2.y) < Math.min(p3.y, p4.y) ||
-                Math.min(p1.y, p2.y) > Math.max(p3.y, p4.y)
-            ) {
-                return false;
-            }
-
-            let denominator = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x);
-            if (denominator == 0) {
-                return false;
-            }
-
-            let a = p1.y - p3.y;
-            let b = p1.x - p3.x;
-            let numerator1 = ((p4.x - p3.x) * a) - ((p4.y - p3.y) * b);
-            let numerator2 = ((p2.x - p1.x) * a) - ((p2.y - p1.y) * b);
-            a = numerator1 / denominator;
-            b = numerator2 / denominator;
-
-
-            let px = p1.x + (a * (p2.x - p1.x)),
-                py = p1.y + (a * (p2.y - p1.y));
-
-            let px2 = +px.toFixed(2),
-                py2 = +py.toFixed(2);
-
-            // is point in boundaries/actually on line?
-            if (
-                px2 < +Math.min(p1.x, p2.x).toFixed(2) ||
-                px2 > +Math.max(p1.x, p2.x).toFixed(2) ||
-                px2 < +Math.min(p3.x, p4.x).toFixed(2) ||
-                px2 > +Math.max(p3.x, p4.x).toFixed(2) ||
-                py2 < +Math.min(p1.y, p2.y).toFixed(2) ||
-                py2 > +Math.max(p1.y, p2.y).toFixed(2) ||
-                py2 < +Math.min(p3.y, p4.y).toFixed(2) ||
-                py2 > +Math.max(p3.y, p4.y).toFixed(2)
-            ) {
-
-                // if final point is on line
-                if (isOnLine(p3.x, p3.y, p4.x, p4.y, p2.x, p2.y, 0.1)) {
-                    return { x: p2.x, y: p2.y };
-                }
-                return false;
-            }
-            return { x: px, y: py, t: b };
-        }
 
 
 
@@ -568,7 +568,6 @@
 
         let pathInfo1 = getPathInfo(pathData1)
         let pathInfo2 = getPathInfo(pathData2)
-
         let quit = false;
 
         // check segment intersections
@@ -590,8 +589,7 @@
                 if (isBBoxIntersect(data1.bb, data2.bb)) {
 
                     let type1 = data1.type, type2 = data2.type;
-                    let maxInter = type1 === 'C' && type2 === 'C' ? 4 : 2
-
+                    let maxInter = type1 === 'C' && type2 === 'C' ? 4 : (type1 === 'L' && type2 === 'L' ? 1 : 2)
 
                     /**
                      * 1. line vs bezier
@@ -1136,9 +1134,513 @@
 
 
 
+    /**
+     * Create svg shapes dynamically
+     * e.g circle: svgEl({cx:50, cy:50, r:20})
+     */
+    function svgEl(props) {
+        let usedProps = Object.keys(props);
+
+        for (prop in props) {
+            this[prop] = props[prop]
+        }
+
+        // check types
+        if (usedProps.includes('d')) {
+            this.type = 'path'
+        }
+
+        else if (usedProps.includes('x2') && usedProps.includes('y2')) {
+            this.type = 'line'
+        }
+
+        else if (usedProps.includes('points')) {
+            // sanitize
+            let pts = Array.isArray(props.points) ? props.points : props.points.split(/[,| ]/).map(Number);
+            this.points = pts
+
+            //if first point equals xmin we likely have a polyline grapgh
+            let xArr = pts.filter((val, i) => { return i % 2 === 0 });
+            let xmin = Math.min(...xArr)
+            let xmax = Math.max(...xArr)
+            let isPolyline = xArr[0] === xmin && xArr[xArr.length - 1] === xmax ? true : false
+            this.type = props.type !== 'polyline' ? (isPolyline ? 'polyline' : 'polygon') : 'polyline'
+        }
+        else if (usedProps.includes('cx') && usedProps.includes('cy') && usedProps.includes('r')) {
+            this.type = 'circle'
+        }
+        else if (usedProps.includes('cx') && usedProps.includes('cy') && usedProps.includes('rx') && usedProps.includes('ry')) {
+            if (props.rx === props.ry) {
+                this.type = 'circle'
+            } else {
+                this.type = 'ellipse'
+            }
+        }
+        else if (usedProps.includes('width') && usedProps.includes('height')) {
+            this.type = 'rect'
+        }
+    }
+
+    /**
+     *  stringify path data
+     *  * e.g circle: svgEl({cx:50, cy:50, r:20}).toPathData().toPathDataString()
+    */
+    Array.prototype.toPathDataString = function () {
+        let d = this.map(com => { return `${com.type} ${com.values.join(' ')}` }).join(' ')
+        return d;
+    }
+
+    /**
+     * retrieve pathdata from shape object
+     * e.g circle: svgEl({cx:50, cy:50, r:20}).toPathData()
+     */
+    svgEl.prototype.toPathData = function (keepArcs = false) {
+        let pathData = []
+        let { type } = this;
+        // cubic arc approximation
+        let kappa = 0.551784777779014;
+        let kappa_x = 1 - kappa
+
+        switch (type) {
+
+            case 'path':
+                let d = this.d;
+                // parse and normalize
+                let options = {
+                    toAbsolute: true,
+                    arcsToCubic: true,
+                    arcAccuracy: 1,
+                }
+                pathData = Array.isArray(d) ? d : parsePathDataNormalized(d, options)
+                break;
+
+            case 'polygon':
+            case 'polyline':
+                let points = this.points;
+                pathData = [{ type: "M", values: [points[0], points[1]] }];
+                for (let i = 3; i < points.length; i += 2) {
+                    pathData.push({ type: "L", values: [points[i - 1], points[i]] })
+                }
+                if (type === 'polygon') {
+                    pathData.push({ type: "Z", values: [] })
+                }
+                break;
+
+            case 'rect':
+                x = this.x ? this.x : 0;
+                y = this.y ? this.y : 0;
+                width = this.width;
+                height = this.height;
+                rx = this.rx;
+                ry = this.ry;
+
+                if (!rx && !ry) {
+                    pathData = [
+                        { type: "M", values: [x, y] },
+                        { type: "L", values: [x + width, y] },
+                        { type: "L", values: [x + width, y + height] },
+                        { type: "L", values: [x, y + height] },
+                        { type: "Z", values: [] }
+                    ];
+                } else {
+
+                    if (rx > width / 2) {
+                        rx = width / 2;
+                    }
+                    if (ry > height / 2) {
+                        ry = height / 2;
+                    }
+
+                    if (!keepArcs) {
+                        pathData = [
+                            { type: "M", values: [x + rx, y] },
+                            { type: "L", values: [x + width - rx, y] },
+                            {
+                                type: 'C', values: [
+                                    (x + width - rx * kappa_x), y,
+                                    x + width, y + ry * kappa,
+                                    x + width, y + ry
+                                ]
+                            },
+                            { type: "L", values: [x + width, y + height - ry] },
+                            {
+                                type: 'C', values: [
+                                    x + width, y + height - ry * kappa,
+                                    x + width - rx * kappa_x, y + height,
+                                    x + width - rx, y + height
+                                ]
+                            },
+
+                            { type: "L", values: [x + rx, y + height] },
+                            {
+                                type: 'C', values: [
+                                    x + rx * kappa_x, y + height,
+                                    x, y + height - ry * kappa,
+                                    x, y + height - ry
+                                ]
+                            },
+                            { type: "L", values: [x, y + ry] },
+                            {
+                                type: 'C', values: [
+                                    x, y + ry * kappa,
+                                    x + rx * kappa_x, y,
+                                    x + rx, y
+                                ]
+                            },
+                            { type: "Z", values: [] }
+                        ];
+
+                    } else {
+
+                        pathData = [
+                            { type: "M", values: [x + rx, y] },
+                            { type: "H", values: [x + width - rx] },
+                            { type: "A", values: [rx, ry, 0, 0, 1, x + width, y + ry] },
+                            { type: "V", values: [y + height - ry] },
+                            { type: "A", values: [rx, ry, 0, 0, 1, x + width - rx, y + height] },
+                            { type: "H", values: [x + rx] },
+                            { type: "A", values: [rx, ry, 0, 0, 1, x, y + height - ry] },
+                            { type: "V", values: [y + ry] },
+                            { type: "A", values: [rx, ry, 0, 0, 1, x + rx, y] },
+                            { type: "Z", values: [] }
+                        ];
+
+                    }
+                }
+                break;
+
+
+
+            case 'circle':
+            case 'ellipse':
+                cx = this.cx;
+                cy = this.cy;
+                if (type === 'circle') {
+                    r = this.r;
+                }
+                rx = this.rx ? this.rx : r;
+                ry = this.ry ? this.ry : r;
+
+                if (!keepArcs) {
+                    pathData = [
+                        { type: "M", values: [cx + rx, cy] },
+
+                        {
+                            type: 'C', values: [
+                                cx + rx, cy + ry * kappa,
+                                cx + rx * kappa, cy + ry,
+                                cx, cy + ry
+                            ]
+                        },
+
+                        {
+                            type: 'C', values: [
+                                cx - rx * kappa, cy + ry,
+                                cx - rx, cy + ry * kappa,
+                                cx - rx, cy
+                            ]
+                        },
+
+                        {
+                            type: 'C', values: [
+                                cx - rx, cy - ry * kappa,
+                                cx - rx * kappa, cy - ry,
+                                cx, cy - ry
+                            ]
+                        },
+
+                        {
+                            type: 'C', values: [
+                                cx + rx * kappa, cy - ry,
+                                cx + rx, cy - ry * kappa,
+                                cx + rx, cy
+                            ]
+                        }
+
+                    ];
+                } else {
+                    pathData = [
+                        { type: "M", values: [cx + rx, cy] },
+                        { type: "A", values: [rx, ry, 0, 1, 1, cx - rx, cy] },
+                        { type: "A", values: [rx, ry, 0, 1, 1, cx + rx, cy] },
+                    ];
+                }
+                break;
+        }
+
+        return pathData
+    }
+
+
+    Array.prototype.getIntersections = function (stopAtFirst = false, quality = 'medium', decimals = 8) {
+
+        let el1 = this[0];
+        let el2 = this[1];
+        let inter = []
+
+        // is circle
+        if (el1.type === 'circle' && el2.type === 'circle') {
+            inter = findCircleIntersection(el1, el2)
+            console.log('circle', inter);
+        } else {
+
+            let pathData1 = new svgEl(JSON.parse(JSON.stringify(el1))).toPathData()
+            let pathData2 = new svgEl(JSON.parse(JSON.stringify(el2))).toPathData()
+
+            inter = findPathIntersections(pathData1, pathData2, stopAtFirst, quality)
+            if (inter.length) {
+                inter = inter.map(it => { return { x: +it.x.toFixed(decimals), y: +it.y.toFixed(decimals) } })
+
+            }
+
+        }
+
+        return inter
+    }
+
+
+
+
+
+
+    /**
+     * based on: https://stackoverflow.com/questions/12219802/a-javascript-function-that-returns-the-x-y-points-of-intersection-between-two-ci
+     */
+
+    function findCircleIntersection(c1, c2, decimals = 8) {
+
+        // Start constructing the response object.
+        let result = {
+            intersect_count: 0,
+            intersect_occurs: false,
+            one_is_in_other: false,
+            are_equal: false,
+            points: []
+        };
+
+        // Get vertical and horizontal distances between circles.
+        const dx = c2.cx - c1.cx;
+        const dy = c2.cy - c1.cy;
+
+        // Calculate the distance between the circle centers as a straight line.
+        const dist = Math.hypot(dy, dx);
+
+        // Check if circles are the same.
+        if (c1.cx === c2.cx && c1.cy === c2.cy && c1.r === c2.r) {
+            result.are_equal = true;
+            return [];
+        }
+
+        // Check one circle isn't inside the other.
+        let rDiff = Math.abs(c1.r - c2.r);
+        if (dist <= rDiff) {
+            result.one_is_in_other = true;
+            if (dist < rDiff) return [];
+        }
+
+        // Check if circles intersect.
+        if (dist <= c1.r + c2.r) {
+            result.intersect_occurs = true;
+        }
+
+        // Find the intersection points
+        if (result.intersect_occurs) {
+            // Centroid is the pt where two lines cross. A line between the circle centers
+            // and a line between the intersection points.
+            const centroid = (c1.r * c1.r - c2.r * c2.r + dist * dist) / (2 * dist);
+
+            // Get the coordinates of centroid.
+            const x2 = c1.cx + (dx * centroid) / dist;
+            const y2 = c1.cy + (dy * centroid) / dist;
+
+            // Get the distance from centroid to the intersection points.
+            const h = Math.sqrt(c1.r * c1.r - centroid * centroid);
+
+            // Get the x and y dist of the intersection points from centroid.
+            const rx = -dy * (h / dist);
+            const ry = dx * (h / dist);
+
+            let pt1 = {
+                x: +(x2 + rx).toFixed(decimals),
+                y: +(y2 + ry).toFixed(decimals)
+            };
+            let pt2 = {
+                x: +(x2 - rx).toFixed(decimals),
+                y: +(y2 - ry).toFixed(decimals)
+            };
+
+            // Add intersection count to results
+            if (pt1.x === pt2.x && pt1.y === pt2.y) {
+                result.intersect_count = 1;
+                result.points.push(pt1);
+            } else {
+                result.intersect_count = 2;
+                result.points.push(pt1, pt2);
+            }
+        }
+        //return result;
+        return result.points;
+    }
+
+    function intersectLines(p1, p2, p3, p4) {
+
+        const isOnLine = (x1, y1, x2, y2, px, py, tolerance = 0.001) => {
+            var f = function (somex) { return (y2 - y1) / (x2 - x1) * (somex - x1) + y1; };
+            return Math.abs(f(px) - py) < tolerance
+                && px >= x1 && px <= x2;
+        }
+
+
+        /*
+        // flat lines?
+        let is_flat1 = p1.y === p2.y || p1.x === p2.x
+        let is_flat2 = p3.y === p4.y || p1.y === p2.y
+        console.log('flat', is_flat1, is_flat2);
+        */
+
+
+
+        if (
+            Math.max(p1.x, p2.x) < Math.min(p3.x, p4.x) ||
+            Math.min(p1.x, p2.x) > Math.max(p3.x, p4.x) ||
+            Math.max(p1.y, p2.y) < Math.min(p3.y, p4.y) ||
+            Math.min(p1.y, p2.y) > Math.max(p3.y, p4.y)
+        ) {
+            return false;
+        }
+
+        let denominator = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x);
+        if (denominator == 0) {
+            return false;
+        }
+
+        let a = p1.y - p3.y;
+        let b = p1.x - p3.x;
+        let numerator1 = ((p4.x - p3.x) * a) - ((p4.y - p3.y) * b);
+        let numerator2 = ((p2.x - p1.x) * a) - ((p2.y - p1.y) * b);
+        a = numerator1 / denominator;
+        b = numerator2 / denominator;
+
+
+        let px = p1.x + (a * (p2.x - p1.x)),
+            py = p1.y + (a * (p2.y - p1.y));
+
+        let px2 = +px.toFixed(2),
+            py2 = +py.toFixed(2);
+
+
+        // is point in boundaries/actually on line?
+        if (
+            px2 < +Math.min(p1.x, p2.x).toFixed(2) ||
+            px2 > +Math.max(p1.x, p2.x).toFixed(2) ||
+            px2 < +Math.min(p3.x, p4.x).toFixed(2) ||
+            px2 > +Math.max(p3.x, p4.x).toFixed(2) ||
+            py2 < +Math.min(p1.y, p2.y).toFixed(2) ||
+            py2 > +Math.max(p1.y, p2.y).toFixed(2) ||
+            py2 < +Math.min(p3.y, p4.y).toFixed(2) ||
+            py2 > +Math.max(p3.y, p4.y).toFixed(2)
+        ) {
+
+            // if final point is on line
+            if (isOnLine(p3.x, p3.y, p4.x, p4.y, p2.x, p2.y, 0.1)) {
+                return { x: p2.x, y: p2.y };
+            }
+            return false;
+        }
+        return { x: px, y: py, t: b };
+    }
+
+
+
+    function isBBoxIntersect(bbox1, bbox2) {
+        let { x, y, right, bottom } = bbox1;
+        let [x2, y2, right2, bottom2] = [bbox2.x, bbox2.y, bbox2.right, bbox2.bottom];
+
+        let bboxIntersection =
+            x <= right2 &&
+                y <= bottom2 &&
+                bottom >= y2 &&
+                right >= x2 ?
+                true :
+                false;
+
+        return bboxIntersection;
+    }
+
+
+    function commandBBox(points) {
+        let allX = points.map(pt => { return pt.x })
+        let allY = points.map(pt => { return pt.y })
+
+        minX = Math.min(...allX);
+        maxX = Math.max(...allX);
+        minY = Math.min(...allY);
+        maxY = Math.max(...allY);
+
+        bb = {
+            x: minX,
+            y: minY,
+            width: maxX - minX,
+            height: maxY - minY,
+            right: maxX,
+            bottom: maxY
+        }
+        //console.log(bb);
+        return bb;
+    }
+
+
+    function getPolyIntersections(el1, el2) {
+        function arrayToPoints(pts) {
+            let ptsN = []
+            for (let i = 1; i < pts.length; i += 2) {
+                ptsN.push({ x: pts[i - 1], y: pts[i] })
+            }
+            return ptsN
+        }
+
+        let pts1 = el1.type === 'line' ? [el1.x1, el1.y1, el1.x2, el1.y2] : el1.points
+        pts1 = arrayToPoints(pts1)
+
+        // close to start
+        if (el1.type === 'polygon') pts1.push(pts1[0])
+
+        let pts2 = el2.type === 'line' ? [el2.x1, el2.y1, el2.x2, el2.y2] : el2.points
+        pts2 = arrayToPoints(pts2);
+        if (el2.type === 'polygon') pts2.push(pts2[0])
+
+
+        let intersections = []
+        for (let i = 0; i < pts1.length - 1; i++) {
+
+            let l1 = pts1[i]
+            let l1_1 = pts1[i + 1] ? pts1[i + 1] : l1
+
+            for (let j = 0; j < pts2.length - 1; j++) {
+
+                let l2 = pts2[j]
+                let l2_1 = pts2[j + 1] ? pts2[j + 1] : l2
+
+                let intersection = intersectLines(l1, l1_1, l2, l2_1)
+                if (intersection) {
+                    intersections.push(intersection)
+                }
+
+            }
+        }
+        return intersections
+
+    }
+
+
+
+
     pathIntersections.findPathIntersections = findPathIntersections;
+    pathIntersections.getElementIntersections = getElementIntersections;
     pathIntersections.checkCollision = checkCollision;
     pathIntersections.findPathDataIntersections = findPathDataIntersections;
+    pathIntersections.svgEl = svgEl;
+    pathIntersections.findCircleIntersection = findCircleIntersection;
     pathIntersections.pointAtT = pointAtT;
     pathIntersections.parsePathDataNormalized = parsePathDataNormalized;
     return pathIntersections;
@@ -1146,5 +1648,5 @@
 });
 
 if (typeof module === 'undefined') {
-    var { checkPathIntersection, checkCollision, findPathIntersections, findPathDataIntersections, pointAtT, parsePathDataNormalized } = pathIntersections;
+    var { checkPathIntersection, checkCollision, findPathIntersections, getElementIntersections,findPathDataIntersections, findCircleIntersection, pointAtT, parsePathDataNormalized, svgEl } = pathIntersections;
 }

@@ -5,7 +5,10 @@ A standalone library to get intersections between two SVG paths.
 It includes a path data parser compliant with the [W3C SVGPathData interface draft](https://svgwg.org/specs/paths/#InterfaceSVGPathData) and can handle all minified stringified path data inputs (especially `A` commands with concatenated largeArc, sweep and final on-path parameters "bomb" quite a few other libraries).  
 
 ## Usage 
-You can either pass a stringified path data 
+You can either pass  
+* stringified path data 
+* a path data array
+* a custom shape object using the `svgEl()` helper
 
 ```
 let intersections = findPathIntersections(d1, d2)
@@ -76,10 +79,47 @@ console.log(JSON.stringify(intersections, null, ' '));
    **Default options:** toAbsolute, toLonghands, arcToCubics
 
 
+### Intersections between shapes via `svgEl()` helper method
+You can use this helper to add all svg geometry elements like so   
+
+```
+let circle = svgEl(cx:10, cy:10, r: 10);  
+
+let ellipse = svgEl(cx:10, cy:10, rx: 10, ry:20 );
+
+let path = svgEl(d: 'M 75 0 a 1 1 45 010 100 1 1 45 010 -100' );
+
+// accepts an array of numbers or a string
+let polygon = svgEl(points: '70 50 70 50 67.7 61.5 61.2 71.2 51.5 77.7 40 80 28.5 77.7 18.8 71.2 12.3 61.5 10 50 12.3 38.5 18.8 28.8 28.5 22.3 40 20 51.5 22.3 61.2 28.8 67.7 38.5' );
+
+let polyline = svgEl(points: '70 50 70 50 67.7 61.5 61.2 71.2 51.5 77.7 40 80 28.5 77.7 18.8 71.2 12.3 61.5 10 50 12.3 38.5 18.8 28.8 28.5 22.3 40 20 51.5 22.3 61.2 28.8 67.7 38.5', type:'polyline' );
+
+let rect = svgEl(x:10, y:10, width:50, height:50, rx:5, ry:3)
+
+let line = svgEl(x1:10, y1:10, x2:50, y2:50)
+
+// get intersections between shapes
+
+let intersections = findPathIntersections(circle, path)
+
+```   
+
+
+### Intersections between DOM elements
+
+```
+let circle = document.querySelector('circle')
+let path = document.querySelector('path')
+let intersectionsDOM = getElementIntersections(circle, path)   
+```
+
+
+
 
 ### Demos
 * [Codepen: multiple path examples and speed test](https://codepen.io/herrstrietzel/pen/bGJyOXB)
 * [Simple demo](https://codepen.io/herrstrietzel/pen/mdgZGrz)
+* [Shapes](https://codepen.io/herrstrietzel/pen/OJGKxKp)
 
 ### Output 
 
